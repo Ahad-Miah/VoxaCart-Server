@@ -24,6 +24,7 @@ async function connectToMongoDB() {
     const categoryCollection = database.collection("categories");
     const productCollection = database.collection("products");
     const wishListCollection = database.collection("wishlists");
+    const cartCollection = database.collection("Carts");
 
     // Route ta function-er bhetorei thakbe, jate const usersCollection ke access korte pare
     // get all users
@@ -160,11 +161,64 @@ app.put('/product/:id', async (req, res) => {
             res.send(result);
         })
     // add a product to wishlist
-    app.post("/wishlist", async (req, res) => {
-      const wishList = req.body;
-      const result = await wishListCollection.insertOne(wishList);
-      res.send(result);
+   app.post("/wishlist", async (req, res) => {
+  const wishList = req.body;
+  
+
+  const query = { 
+    userEmail: wishList.userEmail, 
+    productId: wishList.productId 
+  };
+  
+  const existingItem = await wishListCollection.findOne(query);
+
+  if (existingItem) {
+    
+    return res.status(409).send({ 
+      success: false, 
+      message: "This product is already locked into your wishlist!" 
     });
+  }
+
+  
+  const result = await wishListCollection.insertOne(wishList);
+  res.send(result);
+});
+// add product to cart
+app.post("/cart", async (req, res) => {
+  const cartItem = req.body;
+  
+  
+  const query = { 
+    userEmail: cartItem.userEmail, 
+    productId: cartItem.productId 
+  };
+  
+  
+  const existingItem = await cartCollection.findOne(query);
+
+  if (existingItem) {
+    
+    const updateDoc = {
+      $inc: { quantity: 1 }
+    };
+    const result = await cartCollection.updateOne(query, updateDoc);
+    return res.send({ 
+      success: true, 
+      message: "Product quantity updated in cart!", 
+      result 
+    });
+  } else {
+    
+    cartItem.quantity = 1;
+    const result = await cartCollection.insertOne(cartItem);
+    return res.send({ 
+      success: true, 
+      message: "Product added to cart!", 
+      result 
+    });
+  }
+});
   } catch (err) {
     console.error("MongoDB connection error:", err);
     process.exit(1);
