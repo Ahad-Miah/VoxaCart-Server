@@ -143,6 +143,14 @@ app.put('/product/:id', async (req, res) => {
         res.status(500).send({ error: true, message: "Internal Server Error" });
     }
 });
+// delete product
+ // delete a property
+        app.delete('/product/:id',  async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await productCollection.deleteOne(query);
+            res.send(result);
+        })
 });
   //  add product
    app.post('/add-product', async (req, res) => {
