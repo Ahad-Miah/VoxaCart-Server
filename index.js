@@ -26,6 +26,7 @@ async function connectToMongoDB() {
     const wishListCollection = database.collection("wishlists");
     const cartCollection = database.collection("Carts");
     const reviewCollection = database.collection("reviews");
+    const ordersCollection=database.collection("Orders");
 
     // Route ta function-er bhetorei thakbe, jate const usersCollection ke access korte pare
     // get all users
@@ -91,6 +92,17 @@ async function connectToMongoDB() {
         res.status(500).send("Internal Server Error");
       }
     });
+    // get user orders
+    app.get("/orders/:email", async (req, res) => {
+  try {
+    const email = req.params.email;
+    const query = { userEmail: email };
+    const result = await ordersCollection.find(query).sort({ _id: -1 }).toArray();
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({ message: "Failed to fetch orders" });
+  }
+});
     // add user
     app.post("/users/:email", async (req, res) => {
       try {
@@ -245,6 +257,39 @@ async function connectToMongoDB() {
       const result = await reviewCollection.insertOne(review);
       res.send(result);
     });
+    // add orders
+app.post("/orders", async (req, res) => {
+  const { productId, userEmail } = req.body;
+  
+  try {
+    // ১. অর্ডার সেভ করা (এটি ঠিক আছে)
+    await ordersCollection.insertOne(req.body);
+
+    // ২. প্রোডাক্টের স্টক ১ কমানো (এখানেই ভুল হচ্ছিল, ObjectId কনভার্ট করতে হবে)
+    const updateResult = await  productCollection.updateOne(
+      { _id: new ObjectId(productId) }, 
+      { $inc: { stock: -1 } }
+    );
+
+    // চেক করা যে আসলেই আপডেট হয়েছে কি না
+    if (updateResult.matchedCount === 0) {
+      console.log("Product not found with ID:", productId);
+    }
+
+    // ৩. ইউজারের কার্ট থেকে রিমুভ করা
+    // এখানেও নিশ্চিত করুন productId স্ট্রিং হিসেবে আছে কি না
+    await cartCollection.deleteOne({ 
+      productId: productId, 
+      userEmail: userEmail 
+    });
+
+    res.send({ success: true });
+  } catch (error) {
+    // এররটি কনসোলে প্রিন্ট করুন যাতে বুঝতে পারেন সমস্যা কোথায়
+    console.error("Order API Error:", error);
+    res.status(500).send({ message: "Transaction failed", error: error.message });
+  }
+});
   } catch (err) {
     console.error("MongoDB connection error:", err);
     process.exit(1);
