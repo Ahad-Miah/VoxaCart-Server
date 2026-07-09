@@ -25,6 +25,7 @@ async function connectToMongoDB() {
     const productCollection = database.collection("products");
     const wishListCollection = database.collection("wishlists");
     const cartCollection = database.collection("Carts");
+    const reviewCollection = database.collection("reviews");
 
     // Route ta function-er bhetorei thakbe, jate const usersCollection ke access korte pare
     // get all users
@@ -63,162 +64,187 @@ async function connectToMongoDB() {
       res.send(result);
     });
     // get specific product by email added by vendor
-        app.get('/myProduct/:email', async (req, res) => {
-            const email = req.params.email;
-            const query = { vendorEmail: email };
-            const result = await productCollection.find(query).toArray();
-            res.send(result);
-        })
-    // add user
-app.post('/users/:email', async (req, res) => {
-  try {
-    const email = req.params.email;
-    const user = req.body;
-    const query = { email: email };
-    
-    const updateDoc = {
-      // 1. Ei data gulo PROTTIBAR update hbe (login korle ba refresh korle)
-      $set: {
-        name: user.name,
-        image: user.image
-      },
-      // 2. 🔥 Ei data-ti SHUDHU PROTHOM BAR (Insert hobar shomoy) set hbe
-      // Porer bar update-er shomoy eita ar change hbe na
-      $setOnInsert: {
-        role: user.role || "customer" 
+    app.get("/myProduct/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { vendorEmail: email };
+      const result = await productCollection.find(query).toArray();
+      res.send(result);
+    });
+    // get products all review
+    // 🔍 GET REVIEWS BY PRODUCT ID
+    app.get("/reviews/:productId", async (req, res) => {
+      try {
+        const productId = req.params.productId;
+
+        // productId match kore review gula khunje ber korbe
+        const query = { productId: productId };
+
+        // Sort korbo jate notun review gulo agey dekha jay
+        const result = await reviewCollection
+          .find(query)
+          .sort({ date: -1 })
+          .toArray();
+
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching reviews:", error);
+        res.status(500).send("Internal Server Error");
       }
-    };
-    
-    const options = { upsert: true, returnDocument: 'after' };
-    
-    const result = await usersCollection.findOneAndUpdate(query, updateDoc, options);
-    
-    res.send(result);
-    
-  } catch (error) {
-    console.error("Error upserting user:", error);
-    res.status(500).send("Internal Server Error");
-  }
-  // update products
-app.put('/product/:id', async (req, res) => {
-    try {
-        const id = req.params.id;
-        const filter = { _id: new ObjectId(id) };
-        const option = { upsert: true }; 
-        
-        const updatedData = req.body;
-        const updatedProduct = {
-            $set: {
-                name: updatedData.name,
-                description: updatedData.description,
-                price: Number(updatedData.price),
-                category: updatedData.category,
-                image: updatedData.image,
-                vendor: updatedData.vendor, 
-                rating: Number(updatedData.rating) || 4.5,
-                reviewsCount: Number(updatedData.reviewsCount) || 0,
-                stock: Number(updatedData.stock),
-                
-                
-                sizes: updatedData.sizes || [],
-                colors: updatedData.colors || [],
-                tags: updatedData.tags || [],
-                
-                
-                material: updatedData.material || ""
-            }
+    });
+    // add user
+    app.post("/users/:email", async (req, res) => {
+      try {
+        const email = req.params.email;
+        const user = req.body;
+        const query = { email: email };
+
+        const updateDoc = {
+          // 1. Ei data gulo PROTTIBAR update hbe (login korle ba refresh korle)
+          $set: {
+            name: user.name,
+            image: user.image,
+          },
+          // 2. 🔥 Ei data-ti SHUDHU PROTHOM BAR (Insert hobar shomoy) set hbe
+          // Porer bar update-er shomoy eita ar change hbe na
+          $setOnInsert: {
+            role: user.role || "customer",
+          },
         };
 
-        
-        const result = await productCollection.updateOne(filter, updatedProduct, option);
-        
-        if (result.matchedCount === 0 && result.upsertedCount === 0) {
-            return res.status(404).send({ message: "Product not found or failed to update" });
-        }
+        const options = { upsert: true, returnDocument: "after" };
 
-        
+        const result = await usersCollection.findOneAndUpdate(
+          query,
+          updateDoc,
+          options,
+        );
+
         res.send(result);
+      } catch (error) {
+        console.error("Error upserting user:", error);
+        res.status(500).send("Internal Server Error");
+      }
+      // update products
+      app.put("/product/:id", async (req, res) => {
+        try {
+          const id = req.params.id;
+          const filter = { _id: new ObjectId(id) };
+          const option = { upsert: true };
 
-    } catch (error) {
-        console.error("Error updating product:", error);
-        res.status(500).send({ error: true, message: "Internal Server Error" });
-    }
-});
-// delete product
- // delete a property
-        app.delete('/product/:id',  async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) };
-            const result = await productCollection.deleteOne(query);
-            res.send(result);
-        })
-});
-  //  add product
-   app.post('/add-product', async (req, res) => {
+          const updatedData = req.body;
+          const updatedProduct = {
+            $set: {
+              name: updatedData.name,
+              description: updatedData.description,
+              price: Number(updatedData.price),
+              category: updatedData.category,
+              image: updatedData.image,
+              vendor: updatedData.vendor,
+              rating: Number(updatedData.rating) || 4.5,
+              reviewsCount: Number(updatedData.reviewsCount) || 0,
+              stock: Number(updatedData.stock),
 
-            const property = req.body;
-            const result = await productCollection.insertOne(property);
-            res.send(result);
-        })
+              sizes: updatedData.sizes || [],
+              colors: updatedData.colors || [],
+              tags: updatedData.tags || [],
+
+              material: updatedData.material || "",
+            },
+          };
+
+          const result = await productCollection.updateOne(
+            filter,
+            updatedProduct,
+            option,
+          );
+
+          if (result.matchedCount === 0 && result.upsertedCount === 0) {
+            return res
+              .status(404)
+              .send({ message: "Product not found or failed to update" });
+          }
+
+          res.send(result);
+        } catch (error) {
+          console.error("Error updating product:", error);
+          res
+            .status(500)
+            .send({ error: true, message: "Internal Server Error" });
+        }
+      });
+      // delete product
+      // delete a property
+      app.delete("/product/:id", async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await productCollection.deleteOne(query);
+        res.send(result);
+      });
+    });
+    //  add product
+    app.post("/add-product", async (req, res) => {
+      const property = req.body;
+      const result = await productCollection.insertOne(property);
+      res.send(result);
+    });
     // add a product to wishlist
-   app.post("/wishlist", async (req, res) => {
-  const wishList = req.body;
-  
+    app.post("/wishlist", async (req, res) => {
+      const wishList = req.body;
 
-  const query = { 
-    userEmail: wishList.userEmail, 
-    productId: wishList.productId 
-  };
-  
-  const existingItem = await wishListCollection.findOne(query);
+      const query = {
+        userEmail: wishList.userEmail,
+        productId: wishList.productId,
+      };
 
-  if (existingItem) {
-    
-    return res.status(409).send({ 
-      success: false, 
-      message: "This product is already locked into your wishlist!" 
+      const existingItem = await wishListCollection.findOne(query);
+
+      if (existingItem) {
+        return res.status(409).send({
+          success: false,
+          message: "This product is already locked into your wishlist!",
+        });
+      }
+
+      const result = await wishListCollection.insertOne(wishList);
+      res.send(result);
     });
-  }
+    // add product to cart
+    app.post("/cart", async (req, res) => {
+      const cartItem = req.body;
 
-  
-  const result = await wishListCollection.insertOne(wishList);
-  res.send(result);
-});
-// add product to cart
-app.post("/cart", async (req, res) => {
-  const cartItem = req.body;
-  
-  
-  const query = { 
-    userEmail: cartItem.userEmail, 
-    productId: cartItem.productId 
-  };
-  
-  
-  const existingItem = await cartCollection.findOne(query);
+      const query = {
+        userEmail: cartItem.userEmail,
+        productId: cartItem.productId,
+      };
 
-  if (existingItem) {
-    
-    const updateDoc = {
-      $inc: { quantity: 1 }
-    };
-    const result = await cartCollection.updateOne(query, updateDoc);
-    return res.send({ 
-      success: true, 
-      message: "Product quantity updated in cart!", 
-      result 
+      const existingItem = await cartCollection.findOne(query);
+
+      if (existingItem) {
+        const updateDoc = {
+          $inc: { quantity: 1 },
+        };
+        const result = await cartCollection.updateOne(query, updateDoc);
+        return res.send({
+          success: true,
+          message: "Product quantity updated in cart!",
+          result,
+        });
+      } else {
+        cartItem.quantity = 1;
+        const result = await cartCollection.insertOne(cartItem);
+        return res.send({
+          success: true,
+          message: "Product added to cart!",
+          result,
+        });
+      }
     });
-  } else {
-    
-    cartItem.quantity = 1;
-    const result = await cartCollection.insertOne(cartItem);
-    return res.send({ 
-      success: true, 
-      message: "Product added to cart!", 
-      result 
+    // add review
+    app.post("/reviews", async (req, res) => {
+      const review = req.body;
+      const result = await reviewCollection.insertOne(review);
+      res.send(result);
     });
-  }
-});
   } catch (err) {
     console.error("MongoDB connection error:", err);
     process.exit(1);
