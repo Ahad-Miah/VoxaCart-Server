@@ -103,6 +103,21 @@ async function connectToMongoDB() {
     res.status(500).send({ message: "Failed to fetch orders" });
   }
 });
+// get user cart data
+app.get("/cart/:email", async (req, res) => {
+  const email = req.params.email;
+  // কার্ট কালেকশন থেকে ঐ ইউজারের আইটেমগুলো খুঁজবে
+  const query = { userEmail: email };
+  const result = await cartCollection.find(query).toArray();
+  res.send(result);
+});
+// get user wishlist data
+app.get("/wishlist/:email", async (req, res) => {
+  const email = req.params.email;
+  const query = { userEmail: email };
+  const result = await wishListCollection.find(query).toArray();
+  res.send(result);
+});
     // add user
     app.post("/users/:email", async (req, res) => {
       try {
