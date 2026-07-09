@@ -61,6 +61,13 @@ async function connectToMongoDB() {
       const result = await productCollection.findOne(query);
       res.send(result);
     });
+    // get specific product by email added by vendor
+        app.get('/myProduct/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { vendorEmail: email };
+            const result = await productCollection.find(query).toArray();
+            res.send(result);
+        })
     // add user
 app.post('/users/:email', async (req, res) => {
   try {
@@ -91,6 +98,51 @@ app.post('/users/:email', async (req, res) => {
     console.error("Error upserting user:", error);
     res.status(500).send("Internal Server Error");
   }
+  // update products
+app.put('/product/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const option = { upsert: true }; 
+        
+        const updatedData = req.body;
+        const updatedProduct = {
+            $set: {
+                name: updatedData.name,
+                description: updatedData.description,
+                price: Number(updatedData.price),
+                category: updatedData.category,
+                image: updatedData.image,
+                vendor: updatedData.vendor, 
+                rating: Number(updatedData.rating) || 4.5,
+                reviewsCount: Number(updatedData.reviewsCount) || 0,
+                stock: Number(updatedData.stock),
+                
+                
+                sizes: updatedData.sizes || [],
+                colors: updatedData.colors || [],
+                tags: updatedData.tags || [],
+                
+                
+                material: updatedData.material || ""
+            }
+        };
+
+        
+        const result = await productCollection.updateOne(filter, updatedProduct, option);
+        
+        if (result.matchedCount === 0 && result.upsertedCount === 0) {
+            return res.status(404).send({ message: "Product not found or failed to update" });
+        }
+
+        
+        res.send(result);
+
+    } catch (error) {
+        console.error("Error updating product:", error);
+        res.status(500).send({ error: true, message: "Internal Server Error" });
+    }
+});
 });
   //  add product
    app.post('/add-product', async (req, res) => {
