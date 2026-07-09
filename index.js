@@ -1,13 +1,14 @@
 const express = require("express");
-const { MongoClient } = require("mongodb");
+const { MongoClient, ObjectId } = require("mongodb");
 const cors = require("cors");
 const app = express();
 const port = 5000;
 
-app.use(cors()); 
+app.use(cors());
 app.use(express.json());
 
-const uri = "mongodb+srv://VoxaCart:PotFl5vNmxgxWXP5@cluster0.hrpcy.mongodb.net/?appName=Cluster0";
+const uri =
+  "mongodb+srv://VoxaCart:PotFl5vNmxgxWXP5@cluster0.hrpcy.mongodb.net/?appName=Cluster0";
 const client = new MongoClient(uri);
 
 // MongoDB Connect Function
@@ -15,13 +16,15 @@ async function connectToMongoDB() {
   try {
     await client.connect();
     console.log("Successfully connected to MongoDB!");
-    
+
     const database = client.db("VoxaCartDB");
-    
+
     // Apni jemon cheyechen—bhetorei const diye collection variable
     const usersCollection = database.collection("users");
- const categoryCollection = database.collection("categories");
-    
+    const categoryCollection = database.collection("categories");
+    const productCollection = database.collection("products");
+    const wishListCollection = database.collection("wishlists");
+
     // Route ta function-er bhetorei thakbe, jate const usersCollection ke access korte pare
     // get all users
     app.get("/users", async (req, res) => {
@@ -33,15 +36,78 @@ async function connectToMongoDB() {
         res.status(500).send("Internal Server Error");
       }
     });
-     // get all category
-      app.get("/category", async(req,res)=>{
-        const result=await categoryCollection.find().toArray();
-        res.send(result);
-      });
+    // get user role
+    app.get("/user/role/:email", async (req, res) => {
+      const email = req.params.email;
+      const filter = { email };
+      const result = await usersCollection.findOne(filter);
+      res.send({ role: result?.role });
+    });
+    // get all category
+    app.get("/category", async (req, res) => {
+      const result = await categoryCollection.find().toArray();
+      res.send(result);
+    });
+    // get all products
+    app.get("/products", async (req, res) => {
+      const result = await productCollection.find().toArray();
+      res.send(result);
+    });
+    // get specific product by id
+    app.get("/products/:id", async (req, res) => {
+      const id = req.params.id;
 
+      const query = { _id: new ObjectId(id) };
+      const result = await productCollection.findOne(query);
+      res.send(result);
+    });
+    // add user
+app.post('/users/:email', async (req, res) => {
+  try {
+    const email = req.params.email;
+    const user = req.body;
+    const query = { email: email };
+    
+    const updateDoc = {
+      // 1. Ei data gulo PROTTIBAR update hbe (login korle ba refresh korle)
+      $set: {
+        name: user.name,
+        image: user.image
+      },
+      // 2. 🔥 Ei data-ti SHUDHU PROTHOM BAR (Insert hobar shomoy) set hbe
+      // Porer bar update-er shomoy eita ar change hbe na
+      $setOnInsert: {
+        role: user.role || "customer" 
+      }
+    };
+    
+    const options = { upsert: true, returnDocument: 'after' };
+    
+    const result = await usersCollection.findOneAndUpdate(query, updateDoc, options);
+    
+    res.send(result);
+    
+  } catch (error) {
+    console.error("Error upserting user:", error);
+    res.status(500).send("Internal Server Error");
+  }
+});
+  //  add product
+   app.post('/add-product', async (req, res) => {
+
+            const property = req.body;
+            const result = await productCollection.insertOne(property);
+            res.send(result);
+        })
+    // add a product to wishlist
+    app.post("/wishlist", async (req, res) => {
+      const wishList = req.body;
+      const result = await wishListCollection.insertOne(wishList);
+      res.send(result);
+    });
   } catch (err) {
     console.error("MongoDB connection error:", err);
-    process.exit(1); 
+    process.exit(1);
   }
 }
 
@@ -52,6 +118,6 @@ app.get("/", (req, res) => {
 
 // Start Server
 app.listen(port, async () => {
-  await connectToMongoDB(); 
+  await connectToMongoDB();
   console.log(`Server running on port ${port}`);
 });
