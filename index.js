@@ -147,6 +147,30 @@ app.get("/verified-vendors", async (req, res) => {
 
   }
 });
+// get users stats
+app.get('/admin-stats', async (req, res) => {
+    const users = await usersCollection.estimatedDocumentCount();
+    const orders = await ordersCollection.estimatedDocumentCount();
+    const products = await productCollection.estimatedDocumentCount();
+    const vendors = await vendorCollection.estimatedDocumentCount();
+    const graphData = [
+        { name: 'Jan', value: 400 }, 
+        { name: 'Feb', value: 300 }, 
+        { name: 'Mar', value: 600 }, 
+        { name: 'Apr', value: 800 }, 
+        { name: 'May', value: 500 }
+    ];
+
+    res.send({ 
+       summary: { users, orders, products, vendors },
+       graphData: graphData
+    });
+});
+// get all orders
+  app.get("/orders", async (req, res) => {
+      const result = await ordersCollection.find().toArray();
+      res.send(result);
+    });
     // add user
     app.post("/users/:email", async (req, res) => {
       try {
@@ -244,6 +268,13 @@ app.get("/verified-vendors", async (req, res) => {
       const result = await productCollection.deleteOne(query);
       res.send(result);
     });
+    // delete users
+   app.delete("/users/:id", async (req, res) => {
+  const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await usersCollection.deleteOne(query);
+      res.send(result);
+});
     // delete cart product
     app.delete("/cart/delete/:id", async (req, res) => {
       const result = await cartCollection.deleteOne({
