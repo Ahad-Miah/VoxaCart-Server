@@ -224,6 +224,16 @@ async function connectToMongoDB() {
       });
       res.send(result);
     });
+    // delete wishlist product
+    app.delete("/wishlist/delete/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await wishListCollection.deleteOne({ _id: new ObjectId(id) });
+        res.send(result);
+    } catch (error) {
+        res.status(500).send({ message: "Delete failed", error: error.message });
+    }
+});
     //  add product
     app.post("/add-product", async (req, res) => {
       const property = req.body;
