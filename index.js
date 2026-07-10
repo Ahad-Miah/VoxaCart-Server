@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require("express");
-const { MongoClient, ObjectId } = require("mongodb");
+const { MongoClient, ObjectId, ServerApiVersion } = require("mongodb");
 const cors = require("cors");
 const app = express();
 const port = 5000;
@@ -8,12 +8,18 @@ const port = 5000;
 app.use(cors());
 app.use(express.json());
 
-const uri =
-  `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.hrpcy.mongodb.net/?appName=Cluster0`;
-const client = new MongoClient(uri);
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.hrpcy.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  }
+});
 
 // MongoDB Connect Function
-async function connectToMongoDB() {
+async function run() {
   try {
     // await client.connect();
     console.log("Successfully connected to MongoDB!");
@@ -469,6 +475,7 @@ app.post("/vendor-requests", async (req, res) => {
     process.exit(1);
   }
 }
+run().catch(console.dir);
 
 // Root Route
 app.get("/", (req, res) => {
@@ -477,6 +484,5 @@ app.get("/", (req, res) => {
 
 // Start Server
 app.listen(port, () => {
-  // await connectToMongoDB();
   console.log(`Server running on port ${port}`);
 });
