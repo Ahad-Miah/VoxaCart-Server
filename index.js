@@ -127,6 +127,26 @@ async function connectToMongoDB() {
     const result = await vendorCollection.findOne({ email: email });
     res.send(result);
 });
+// get verified vendors
+app.get("/verified-vendors", async (req, res) => {
+  try {
+
+    const verifiedVendors = await vendorCollection
+      .find({ status: "verified" })
+      .toArray();
+
+
+    res.send(verifiedVendors);
+
+  } catch (error) {
+
+    console.error(error);
+    res.status(500).send({
+      message: "Failed to fetch verified vendors"
+    });
+
+  }
+});
     // add user
     app.post("/users/:email", async (req, res) => {
       try {
