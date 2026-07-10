@@ -27,6 +27,7 @@ async function connectToMongoDB() {
     const cartCollection = database.collection("Carts");
     const reviewCollection = database.collection("reviews");
     const ordersCollection = database.collection("Orders");
+    const vendorCollection=database.collection("vendors");
 
     // Route ta function-er bhetorei thakbe, jate const usersCollection ke access korte pare
     // get all users
@@ -120,6 +121,12 @@ async function connectToMongoDB() {
       const result = await wishListCollection.find(query).toArray();
       res.send(result);
     });
+    // get vendor request
+    app.get("/vendor-requests/:email", async (req, res) => {
+    const email = req.params.email;
+    const result = await vendorCollection.findOne({ email: email });
+    res.send(result);
+});
     // add user
     app.post("/users/:email", async (req, res) => {
       try {
@@ -360,6 +367,12 @@ async function connectToMongoDB() {
     } catch (error) {
         res.status(500).send({ message: "Checkout failed", error: error.message });
     }
+});
+// add vendor application
+app.post("/vendor-requests", async (req, res) => {
+     const vendor = req.body;
+      const result = await vendorCollection.insertOne(vendor);
+      res.send(result);
 });
   } catch (err) {
     console.error("MongoDB connection error:", err);
