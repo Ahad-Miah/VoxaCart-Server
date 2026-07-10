@@ -114,6 +114,11 @@ async function connectToMongoDB() {
       const result = await cartCollection.find(query).toArray();
       res.send(result);
     });
+    // get vendor application
+    app.get('/vendor-applications', async (req, res) => {
+    const result = await vendorCollection.find({ status: 'pending' }).toArray();
+    res.send(result);
+});
     // get user wishlist data
     app.get("/wishlist/:email", async (req, res) => {
       const email = req.params.email;
@@ -260,6 +265,19 @@ app.get('/admin-stats', async (req, res) => {
         { $set: { quantity: quantity } }
     );
     res.send(result);
+});
+// vendor status upate
+app.patch('/vendor-applications/:id', async (req, res) => {
+    const { id } = req.params;
+    const { status, email } = req.body;
+    
+    await vendorCollection.updateOne({ _id: new ObjectId(id) }, { $set: { status } });
+    
+    if (status === 'verified') {
+        await usersCollection.updateOne({ email: email }, { $set: { role: 'vendor' } });
+    }
+    
+    res.send({ success: true });
 });
     // delete product
     app.delete("/product/:id", async (req, res) => {
