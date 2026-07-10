@@ -114,6 +114,12 @@ async function connectToMongoDB() {
       const result = await cartCollection.find(query).toArray();
       res.send(result);
     });
+     app.get("/vendor/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await vendorCollection.findOne(query);
+      res.send(result);
+    });
     // get vendor application
     app.get('/vendor-applications', async (req, res) => {
     const result = await vendorCollection.find({ status: 'pending' }).toArray();
