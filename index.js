@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require("express");
 const { MongoClient, ObjectId } = require("mongodb");
 const cors = require("cors");
@@ -8,15 +9,14 @@ app.use(cors());
 app.use(express.json());
 
 const uri =
-  "mongodb+srv://VoxaCart:PotFl5vNmxgxWXP5@cluster0.hrpcy.mongodb.net/?appName=Cluster0";
+  `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.hrpcy.mongodb.net/?appName=Cluster0`;
 const client = new MongoClient(uri);
 
 // MongoDB Connect Function
 async function connectToMongoDB() {
   try {
-    await client.connect();
+    // await client.connect();
     console.log("Successfully connected to MongoDB!");
-    console.log(process.env.DB_USER);
 
     const database = client.db("VoxaCartDB");
 
