@@ -26,7 +26,7 @@ async function connectToMongoDB() {
     const wishListCollection = database.collection("wishlists");
     const cartCollection = database.collection("Carts");
     const reviewCollection = database.collection("reviews");
-    const ordersCollection=database.collection("Orders");
+    const ordersCollection = database.collection("Orders");
 
     // Route ta function-er bhetorei thakbe, jate const usersCollection ke access korte pare
     // get all users
@@ -94,30 +94,32 @@ async function connectToMongoDB() {
     });
     // get user orders
     app.get("/orders/:email", async (req, res) => {
-  try {
-    const email = req.params.email;
-    const query = { userEmail: email };
-    const result = await ordersCollection.find(query).sort({ _id: -1 }).toArray();
-    res.send(result);
-  } catch (error) {
-    res.status(500).send({ message: "Failed to fetch orders" });
-  }
-});
-// get user cart data
-app.get("/cart/:email", async (req, res) => {
-  const email = req.params.email;
-  // কার্ট কালেকশন থেকে ঐ ইউজারের আইটেমগুলো খুঁজবে
-  const query = { userEmail: email };
-  const result = await cartCollection.find(query).toArray();
-  res.send(result);
-});
-// get user wishlist data
-app.get("/wishlist/:email", async (req, res) => {
-  const email = req.params.email;
-  const query = { userEmail: email };
-  const result = await wishListCollection.find(query).toArray();
-  res.send(result);
-});
+      try {
+        const email = req.params.email;
+        const query = { userEmail: email };
+        const result = await ordersCollection
+          .find(query)
+          .sort({ _id: -1 })
+          .toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Failed to fetch orders" });
+      }
+    });
+    // get user cart data
+    app.get("/cart/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { userEmail: email };
+      const result = await cartCollection.find(query).toArray();
+      res.send(result);
+    });
+    // get user wishlist data
+    app.get("/wishlist/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { userEmail: email };
+      const result = await wishListCollection.find(query).toArray();
+      res.send(result);
+    });
     // add user
     app.post("/users/:email", async (req, res) => {
       try {
@@ -151,62 +153,76 @@ app.get("/wishlist/:email", async (req, res) => {
         console.error("Error upserting user:", error);
         res.status(500).send("Internal Server Error");
       }
-      // update products
-      app.put("/product/:id", async (req, res) => {
-        try {
-          const id = req.params.id;
-          const filter = { _id: new ObjectId(id) };
-          const option = { upsert: true };
-
-          const updatedData = req.body;
-          const updatedProduct = {
-            $set: {
-              name: updatedData.name,
-              description: updatedData.description,
-              price: Number(updatedData.price),
-              category: updatedData.category,
-              image: updatedData.image,
-              vendor: updatedData.vendor,
-              rating: Number(updatedData.rating) || 4.5,
-              reviewsCount: Number(updatedData.reviewsCount) || 0,
-              stock: Number(updatedData.stock),
-
-              sizes: updatedData.sizes || [],
-              colors: updatedData.colors || [],
-              tags: updatedData.tags || [],
-
-              material: updatedData.material || "",
-            },
-          };
-
-          const result = await productCollection.updateOne(
-            filter,
-            updatedProduct,
-            option,
-          );
-
-          if (result.matchedCount === 0 && result.upsertedCount === 0) {
-            return res
-              .status(404)
-              .send({ message: "Product not found or failed to update" });
-          }
-
-          res.send(result);
-        } catch (error) {
-          console.error("Error updating product:", error);
-          res
-            .status(500)
-            .send({ error: true, message: "Internal Server Error" });
-        }
-      });
-      // delete product
-      // delete a property
-      app.delete("/product/:id", async (req, res) => {
+    });
+    // update products
+    app.put("/product/:id", async (req, res) => {
+      try {
         const id = req.params.id;
-        const query = { _id: new ObjectId(id) };
-        const result = await productCollection.deleteOne(query);
+        const filter = { _id: new ObjectId(id) };
+        const option = { upsert: true };
+
+        const updatedData = req.body;
+        const updatedProduct = {
+          $set: {
+            name: updatedData.name,
+            description: updatedData.description,
+            price: Number(updatedData.price),
+            category: updatedData.category,
+            image: updatedData.image,
+            vendor: updatedData.vendor,
+            rating: Number(updatedData.rating) || 4.5,
+            reviewsCount: Number(updatedData.reviewsCount) || 0,
+            stock: Number(updatedData.stock),
+
+            sizes: updatedData.sizes || [],
+            colors: updatedData.colors || [],
+            tags: updatedData.tags || [],
+
+            material: updatedData.material || "",
+          },
+        };
+
+        const result = await productCollection.updateOne(
+          filter,
+          updatedProduct,
+          option,
+        );
+
+        if (result.matchedCount === 0 && result.upsertedCount === 0) {
+          return res
+            .status(404)
+            .send({ message: "Product not found or failed to update" });
+        }
+
         res.send(result);
+      } catch (error) {
+        console.error("Error updating product:", error);
+        res.status(500).send({ error: true, message: "Internal Server Error" });
+      }
+    });
+    // cart quantity update
+ app.patch("/cart/update/:id", async (req, res) => {
+    const { id } = req.params;
+    const { quantity } = req.body; 
+    const result = await cartCollection.updateOne(
+        { _id: new ObjectId(id) }, 
+        { $set: { quantity: quantity } }
+    );
+    res.send(result);
+});
+    // delete product
+    app.delete("/product/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await productCollection.deleteOne(query);
+      res.send(result);
+    });
+    // delete cart product
+    app.delete("/cart/delete/:id", async (req, res) => {
+      const result = await cartCollection.deleteOne({
+        _id: new ObjectId(req.params.id),
       });
+      res.send(result);
     });
     //  add product
     app.post("/add-product", async (req, res) => {
@@ -273,37 +289,67 @@ app.get("/wishlist/:email", async (req, res) => {
       res.send(result);
     });
     // add orders
-app.post("/orders", async (req, res) => {
-  const { productId, userEmail } = req.body;
-  
-  try {
-    // ১. অর্ডার সেভ করা (এটি ঠিক আছে)
-    await ordersCollection.insertOne(req.body);
+    app.post("/orders", async (req, res) => {
+      const { productId, userEmail } = req.body;
 
-    // ২. প্রোডাক্টের স্টক ১ কমানো (এখানেই ভুল হচ্ছিল, ObjectId কনভার্ট করতে হবে)
-    const updateResult = await  productCollection.updateOne(
-      { _id: new ObjectId(productId) }, 
-      { $inc: { stock: -1 } }
-    );
+      try {
+        // ১. অর্ডার সেভ করা (এটি ঠিক আছে)
+        await ordersCollection.insertOne(req.body);
 
-    // চেক করা যে আসলেই আপডেট হয়েছে কি না
-    if (updateResult.matchedCount === 0) {
-      console.log("Product not found with ID:", productId);
-    }
+        // ২. প্রোডাক্টের স্টক ১ কমানো (এখানেই ভুল হচ্ছিল, ObjectId কনভার্ট করতে হবে)
+        const updateResult = await productCollection.updateOne(
+          { _id: new ObjectId(productId) },
+          { $inc: { stock: -1 } },
+        );
 
-    // ৩. ইউজারের কার্ট থেকে রিমুভ করা
-    // এখানেও নিশ্চিত করুন productId স্ট্রিং হিসেবে আছে কি না
-    await cartCollection.deleteOne({ 
-      productId: productId, 
-      userEmail: userEmail 
+        // চেক করা যে আসলেই আপডেট হয়েছে কি না
+        if (updateResult.matchedCount === 0) {
+          console.log("Product not found with ID:", productId);
+        }
+
+        // ৩. ইউজারের কার্ট থেকে রিমুভ করা
+        // এখানেও নিশ্চিত করুন productId স্ট্রিং হিসেবে আছে কি না
+        await cartCollection.deleteOne({
+          productId: productId,
+          userEmail: userEmail,
+        });
+
+        res.send({ success: true });
+      } catch (error) {
+        // এররটি কনসোলে প্রিন্ট করুন যাতে বুঝতে পারেন সমস্যা কোথায়
+        console.error("Order API Error:", error);
+        res
+          .status(500)
+          .send({ message: "Transaction failed", error: error.message });
+      }
     });
+    // checkout
+   app.post("/checkout", async (req, res) => {
+    const { items, email, userName, total } = req.body;
+    try {
+        // ১. প্রতিটি আইটেমের জন্য অর্ডার ডাটা তৈরি
+        const orderData = items.map(item => ({
+            productId: item.productId,
+            userName: userName,
+            userEmail: email,
+            productName: item.name,
+            price: Number(item.price),
+            image: item.image,
+            date: new Date().toLocaleDateString(),
+            status: "Paid",
+            quantity: item.quantity
+        }));
 
-    res.send({ success: true });
-  } catch (error) {
-    // এররটি কনসোলে প্রিন্ট করুন যাতে বুঝতে পারেন সমস্যা কোথায়
-    console.error("Order API Error:", error);
-    res.status(500).send({ message: "Transaction failed", error: error.message });
-  }
+        // ২. অর্ডার কালেকশনে সেভ
+        await ordersCollection.insertMany(orderData);
+
+        // ৩. কার্ট ক্লিয়ার
+        await cartCollection.deleteMany({ userEmail: email });
+        
+        res.send({ success: true });
+    } catch (error) {
+        res.status(500).send({ message: "Checkout failed", error: error.message });
+    }
 });
   } catch (err) {
     console.error("MongoDB connection error:", err);
