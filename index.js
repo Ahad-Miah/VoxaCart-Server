@@ -16,6 +16,7 @@ async function connectToMongoDB() {
   try {
     await client.connect();
     console.log("Successfully connected to MongoDB!");
+    console.log(process.env.DB_USER);
 
     const database = client.db("VoxaCartDB");
 
