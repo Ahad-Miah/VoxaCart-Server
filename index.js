@@ -176,6 +176,11 @@ app.get('/admin-stats', async (req, res) => {
       const result = await ordersCollection.find().toArray();
       res.send(result);
     });
+    // get all vendors
+     app.get("/allvendors", async (req, res) => {
+      const result = await vendorCollection.find().toArray();
+      res.send(result);
+    });
     // add user
     app.post("/users/:email", async (req, res) => {
       try {
@@ -278,6 +283,15 @@ app.patch('/vendor-applications/:id', async (req, res) => {
     }
     
     res.send({ success: true });
+});
+// update role
+app.patch('/users/role/:id', async (req, res) => {
+    const id = req.params.id;
+    const { role } = req.body; // 'ADMIN' বা 'CUSTOMER' পাঠাবেন
+    const filter = { _id: new ObjectId(id) };
+    const updateDoc = { $set: { role: role } };
+    const result = await usersCollection.updateOne(filter, updateDoc);
+    res.send(result);
 });
     // delete product
     app.delete("/product/:id", async (req, res) => {
