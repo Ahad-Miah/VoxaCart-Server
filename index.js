@@ -476,7 +476,7 @@ app.get("/", (req, res) => {
 });
 
 // Start Server
-app.listen(port, async () => {
-  await connectToMongoDB();
+app.listen(port, () => {
+  // await connectToMongoDB();
   console.log(`Server running on port ${port}`);
 });
